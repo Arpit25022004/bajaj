@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Input</title>
+    <style>
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <h1>JSON Input</h1>
+    <form id="jsonForm">
+        <textarea id="jsonInput" placeholder='{"data":["M","1","334","4","B"]}' rows="4" cols="50"></textarea><br>
+        <button type="submit">Submit</button>
+        <p id="error" style="color: red;"></p>
+    </form>
+
+    <div id="dropdownContainer" class="hidden">
+        <h2>Multi Filter</h2>
+        <select id="responseOptions" multiple>
+            <option value="alphabets">Alphabets</option>
+            <option value="numbers">Numbers</option>
+            <option value="highestAlphabet">Highest Alphabet</option>
+        </select>
+        <button id="renderButton">Render</button>
+    </div>
+
+    <div id="responseContainer" class="hidden">
+        <h2>Filtered Response</h2>
+        <pre id="responseOutput"></pre>
+    </div>
+
+    <script>
+        document.getElementById('jsonForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const jsonInput = document.getElementById('jsonInput').value;
+            const errorElement = document.getElementById('error');
+            
+            // Validate JSON
+            let jsonData;
+            try {
+                jsonData = JSON.parse(jsonInput);
+                errorElement.textContent = '';
+                // Call the REST API with the JSON data
+                callApi(jsonData);
+            } catch (e) {
+                errorElement.textContent = 'Invalid JSON format';
+            }
+        });
+
+        function callApi(data) {
+            fetch('http://localhost:3000/api/process', { // Ensure the correct endpoint
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('dropdownContainer').classList.remove('hidden');
+                handleDropdownSelection(data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        function handleDropdownSelection(apiResponse) {
+            document.getElementById('renderButton').addEventListener('click', function() {
+                const selectedOptions = Array.from(document.getElementById('responseOptions').selectedOptions).map(option => option.value);
+                const responseOutput = document.getElementById('responseOutput');
+                let responseContent = {};
+
+                // Extract data based on selected options
+                if (selectedOptions.includes('alphabets')) {
+                    responseContent.alphabets = apiResponse.alphabets;
+                }
+                if (selectedOptions.includes('numbers')) {
+                    responseContent.numbers = apiResponse.numbers;
+                }
+                if (selectedOptions.includes('highestAlphabet')) {
+                    responseContent.highestAlphabet = apiResponse.highest_alphabet;
+                }
+
+                // Display the filtered response
+                responseOutput.textContent = JSON.stringify(responseContent, null, 2);
+                document.getElementById('responseContainer').classList.remove('hidden');
+            });
+        }
+    </script>
+</body>
+</html>
